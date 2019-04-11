@@ -1,24 +1,24 @@
-import { generateAttributes } from "./html";
+import { generateAttributes, isVoidElement } from "./html";
+import { isBlank } from "./util";
 
-let VOID_ELEMENTS = {}; // poor man's `Set`
-[
-	"area", "base", "br", "col", "embed", "hr", "img", "input", "keygen",
-	"link", "meta", "param", "source", "track", "wbr"
-].forEach(tag => {
-	VOID_ELEMENTS[tag] = true;
-});
+function sanitizeChildren(children, DeferredElement) {
+	return children.reduce((memo, item) => {
+		if(isBlank(item)) {
+			return memo;
+		}
+		if(item && item.then) {
+			item = new DeferredElement(item);
+		}
+		return memo.concat(item.pop ? sanitizeChildren(item, DeferredElement) : item);
+	}, []);
+}
 
 export function makeCreateElement(Element, DeferredElement) {
 	return (tag, attributes, ...children) => {
 		if(tag.call) { // macro
 			return tag(attributes, ...children);
 		}
-
-		// convert promises to deferred elements
-		children = children.map(child => {
-			return child.then ? new DeferredElement(child) : child;
-		});
-		return new Element(tag, attributes, children);
+		return new Element(tag, attributes, sanitizeChildren(children, DeferredElement));
 	};
 }
 
@@ -47,8 +47,8 @@ export class DeferredElement {
 
 export class Element {
 	constructor(tag, attributes, children) {
-		let isVoid = this.void = VOID_ELEMENTS[tag];
-		if(isVoid && (children || children.length)) {
+		let isVoid = this.void = isVoidElement(tag);
+		if(isVoid && children && children.length) {
 			throw new Error(`void elements must not have children: \`<${tag}>\``);
 		}
 
@@ -60,8 +60,7 @@ export class Element {
 	get startTag() {
 		// TODO: performance optimization by avoiding `generateAttributes`
 		//       invocation if unnecessary
-		let suffix = this.void ? "/>" : ">";
-		return `<${this.tag}${generateAttributes(this.attribs)}${suffix}`;
+		return `<${this.tag}${generateAttributes(this.attribs)}>`;
 	}
 
 	get endTag() {
