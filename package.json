@@ -1,0 +1,26 @@
+{
+	"name": "complate-stream",
+	"version": "0.0.0",
+	"description": "TBD",
+	"author": "FND",
+	"license": "Apache-2.0",
+	"homepage": "https://github.com/complate/complate-html",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/complate/complate-html.git"
+	},
+	"bugs": {
+		"url": "https://github.com/complate/complate-html/issues"
+	},
+	"scripts": {
+		"test": "mocha -r esm test/test_*.js",
+		"lint": "eslint --cache src test && echo ✓"
+	},
+	"main": "src/index.js",
+	"dependencies": {},
+	"devDependencies": {
+		"eslint-config-fnd": "^1.6.0",
+		"esm": "^3.2.22",
+		"mocha": "^6.1.2"
+	}
+}
