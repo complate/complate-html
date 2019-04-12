@@ -6,7 +6,7 @@ function sanitizeChildren(children, DeferredElement) {
 		if(isBlank(item)) {
 			return memo;
 		}
-		if(item && item.then) {
+		if(item.then) {
 			item = new DeferredElement(item);
 		}
 		return memo.concat(item.pop ? sanitizeChildren(item, DeferredElement) : item);
