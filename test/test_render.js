@@ -180,7 +180,7 @@ describe("asynchronous rendering", () => {
 		});
 	});
 
-	it("should keof order if deferred child elements", () => {
+	it("should keep order if deferred child elements", () => {
 		let root = createElement("body", null,
 				new DeferredElement(callback => {
 					setTimeout(() => {
