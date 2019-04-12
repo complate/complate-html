@@ -22,26 +22,11 @@ export function makeCreateElement(Element, DeferredElement) {
 	};
 }
 
-// generates a pseudo-promise for compatibility across JavaScript runtimes
-export function defer(fn) {
-	return {
-		then: callback => fn(callback)
-	};
-}
-
 export class DeferredElement {
-	constructor(promise) {
-		this.promise = promise;
-	}
-
-	then(callback, errback) {
-		return this.promise.
-			then(callback, errback);
-	}
-
-	catch(errback) {
-		return this.promise.
-			catch(errback);
+	constructor(fn) {
+		this.promise = new Promise(resolve => {
+			return fn(resolve);
+		});
 	}
 }
 

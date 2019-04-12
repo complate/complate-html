@@ -1,5 +1,5 @@
 /* global describe, it */
-import { createElement, defer } from "../src/elements";
+import { createElement, DeferredElement } from "../src/elements";
 import { strictEqual as assertSame, deepStrictEqual as assertDeep } from "assert";
 
 describe("createElement", () => {
@@ -37,15 +37,15 @@ describe("createElement", () => {
 	});
 
 	it("should support deferred elements", done => {
-		let root = createElement("body", { class: "plain" }, defer(callback => {
+		let root = createElement("body", { class: "plain" }, new DeferredElement(callback => {
 			setTimeout(() => {
 				let el = createElement("p", null, "lorem", "ipsum");
 				callback(el);
 			}, 10);
 		}));
 
-		// FIXME: tests only that `defer` creates a pseudo-promise
-		root.children[0].
+		// FIXME: tests only that `DeferredElement` creates a pseudo-promise
+		root.children[0].promise.
 			then(element => {
 				assertSame(element.tag, "p");
 				assertDeep(Object.keys(element.attribs), []);

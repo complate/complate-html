@@ -1,8 +1,7 @@
 import * as elements from "./elements";
-import { iterAsync, isBlank, repr } from "./util";
+import { isBlank, repr } from "./util";
 import { htmlEncode } from "./html";
-
-export { defer } from "./elements";
+import DelayedStream from "./delayed_stream";
 
 export function HTMLString(str) {
 	if(isBlank(str) || !str.substr) {
@@ -16,27 +15,29 @@ export class DeferredElement extends elements.DeferredElement {
 		throw new Error("deferred elements unsupported in synchrous rendering");
 	}
 
-	renderAsync(stream, callback) {
-		this.promise.then(element => {
-			element.renderAsync(stream, callback);
+	renderAsync(stream) {
+		return this.promise.then(element => {
+			return element.renderAsync(stream);
 		});
 	}
 }
 
 export class Element extends elements.Element {
-	renderAsync(stream, callback) {
+	renderAsync(stream) {
 		stream.write(this.startTag);
 
-		iterAsync(this.children, 0, (child, next) => {
+		return Promise.all(this.children.map(child => {
+			let ds = new DelayedStream(stream);
 			if(child.renderAsync) {
-				child.renderAsync(stream, next);
+				return child.renderAsync(ds);
 			} else {
-				stream.write(childContents(child));
-				next();
+				ds.write(childContents(child));
+				return ds;
 			}
-		}, () => {
+		})).then(delayedStreams => {
+			delayedStreams.map(ds => ds.apply());
 			stream.write(this.endTag);
-			callback();
+			return stream;
 		});
 	}
 

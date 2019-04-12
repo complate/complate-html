@@ -1,4 +1,4 @@
-import { createElement, defer } from "../src";
+import { createElement, DeferredElement } from "../src";
 
 export function SiteIndex({ title }) {
 	return createElement(DefaultLayout, { title },
@@ -9,7 +9,7 @@ export function SiteIndex({ title }) {
 export function NonBlockingContainer() {
 	return createElement(FragmentLayout, null,
 			createElement("p", null, "…"),
-			createElement("p", null, defer(callback => {
+			createElement("p", null, new DeferredElement(callback => {
 				setTimeout(_ => {
 					let el = createElement("i", null, "lorem ipsum");
 					callback(el);

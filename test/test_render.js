@@ -1,5 +1,5 @@
 /* global describe, it */
-import { createElement, defer, HTMLString, Fragment } from "../src";
+import { createElement, HTMLString, Fragment, DeferredElement } from "../src";
 import BufferedStream from "../src/buffered_stream";
 import assert, { strictEqual as assertSame } from "assert";
 import { SiteIndex, NonBlockingContainer } from "./macros";
@@ -158,103 +158,89 @@ describe("synchronous rendering", () => {
 });
 
 describe("asynchronous rendering", () => {
-	it("should generate HTML", done => {
+	it("should generate HTML", () => {
 		let root = createElement("body", null,
 				createElement("p", { class: "info" }, "lorem", "ipsum"));
-		let stream = new BufferedStream();
-		root.renderAsync(stream, () => {
+		return root.renderAsync(new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, '<body><p class="info">loremipsum</p></body>');
-			done();
 		});
 	});
 
-	it("should support deferred child elements", done => {
-		let root = createElement("body", null, defer(callback => {
+	it("should support deferred child elements", () => {
+		let root = createElement("body", null, new DeferredElement(callback => {
 			setTimeout(() => {
 				let el = createElement("p", { class: "info" }, "lorem", "ipsum");
 				callback(el);
 			}, 10);
 		}));
-		let stream = new BufferedStream();
-		root.renderAsync(stream, () => {
+		return root.renderAsync(new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, '<body><p class="info">loremipsum</p></body>');
-			done();
 		});
 	});
 
-	it("should keof order if deferred child elements", done => {
+	it("should keof order if deferred child elements", () => {
 		let root = createElement("body", null,
-				defer(callback => {
+				new DeferredElement(callback => {
 					setTimeout(() => {
 						callback(createElement("a1"));
 					}, 10);
 				}),
 				createElement("a2", null,
-						defer(callback => {
+						new DeferredElement(callback => {
 							setTimeout(() => {
 								callback(createElement("a3"));
 							}, 10);
 						})),
 				createElement("a4")
 		);
-		let stream = new BufferedStream();
-		root.renderAsync(stream, () => {
+		return root.renderAsync(new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, "<body><a1></a1><a2><a3></a3></a2><a4></a4></body>");
-			done();
 		});
 	});
-	it("should support large numbers of deferred child elements", function(done) {
-		this.timeout(3000);
 
+	it("should support large numbers of deferred child elements in paralell", () => {
 		let deferred = range(10000).map((_, i) => {
 			i++;
-			if(i % 5000 !== 0) {
-				return createElement("li", null, i);
-			}
-
-			return defer(callback => {
-				let el = createElement("li", null, i);
-				callback(el);
+			return new DeferredElement(callback => {
+				setTimeout(() => {
+					let el = createElement("li", null, i);
+					callback(el);
+				}, 100); // 100ms would lead to timeout if not executed parallely
 			});
 		});
 		let root = createElement("ul", null, ...deferred);
 
-		let stream = new BufferedStream();
-		root.renderAsync(stream, () => {
+		return root.renderAsync(new BufferedStream()).then(stream => {
 			let html = stream.read();
-			assert(html.includes("<li>10000</li></ul>"));
-			done();
+			let expectedLis = range(10000).map((_, i) => `<li>${i}</li>`).join("");
+			assert(html, `<ul>${expectedLis}</ul>`);
 		});
 	});
 
-	it.skip("should support multiple root elements (via virtual fragment elements)", done => {
+	it.skip("should support multiple root elements (via virtual fragment elements)", () => {
 		let root = createElement(Fragment, null,
 				createElement("li", null, "foo"),
 				createElement("li", null, "bar"),
 				createElement("li", null, "baz"));
-		let stream = new BufferedStream();
-		root.renderAsync(stream, () => {
+		return root.renderAsync(new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, "<li>foo</li><li>bar</li><li>baz</li>");
-			done();
 		});
 	});
 
-	it("should perform markup expansion for macros", done => {
-		/* eslint-disable indent */
-		let stream = new BufferedStream();
-		SiteIndex({ title: "hello world" }).renderAsync(stream, _ => {
-			let html = stream.read();
-			assertSame(html, "<html>" +
-								'<head><meta charset="utf-8"><title>hello world</title></head>' +
-								"<body><h1>hello world</h1><p>…</p></body>" +
-							"</html>");
-			done();
-		});
-		/* eslint-enable indent */
+	it("should perform markup expansion for macros", () => {
+		return SiteIndex({ title: "hello world" }).
+			renderAsync(new BufferedStream()).
+			then(stream => {
+				let html = stream.read();
+				assertSame(html, "<html>" +
+									'<head><meta charset="utf-8"><title>hello world</title></head>' +
+									"<body><h1>hello world</h1><p>…</p></body>" +
+								"</html>");
+			});
 	});
 });
 
