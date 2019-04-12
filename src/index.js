@@ -27,7 +27,7 @@ export class Element extends elements.Element {
 		stream.write(this.startTag);
 
 		return Promise.all(this.children.map(child => {
-			let ds = new DelayedStream(stream);
+			let ds = new DelayedStream();
 			if(child.renderAsync) {
 				return child.renderAsync(ds);
 			} else {
@@ -35,7 +35,7 @@ export class Element extends elements.Element {
 				return ds;
 			}
 		})).then(delayedStreams => {
-			delayedStreams.map(ds => ds.apply());
+			delayedStreams.map(ds => ds.apply(stream));
 			stream.write(this.endTag);
 			return stream;
 		});
