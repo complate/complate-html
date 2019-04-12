@@ -184,6 +184,28 @@ describe("asynchronous rendering", () => {
 		});
 	});
 
+	it("should keof order if deferred child elements", done => {
+		let root = createElement("body", null,
+				defer(callback => {
+					setTimeout(() => {
+						callback(createElement("a1"));
+					}, 10);
+				}),
+				createElement("a2", null,
+						defer(callback => {
+							setTimeout(() => {
+								callback(createElement("a3"));
+							}, 10);
+						})),
+				createElement("a4")
+		);
+		let stream = new BufferedStream();
+		root.renderAsync(stream, () => {
+			let html = stream.read();
+			assertSame(html, "<body><a1></a1><a2><a3></a3></a2><a4></a4></body>");
+			done();
+		});
+	});
 	it("should support large numbers of deferred child elements", function(done) {
 		this.timeout(3000);
 
