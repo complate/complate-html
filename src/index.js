@@ -44,7 +44,7 @@ export class Element extends elements.Element {
 		stream.write(this.startTag);
 		this.children.forEach(child => {
 			if(child.renderSync) {
-				stream.write(child.renderSync(stream));
+				child.renderSync(stream);
 			} else {
 				stream.write(childContents(child));
 			}
