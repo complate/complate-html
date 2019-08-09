@@ -6,6 +6,18 @@ export function SiteIndex({ title }) {
 			createElement("p", null, "…"));
 }
 
+export function BlockingContainer() {
+	return createElement(FragmentLayout, null,
+			createElement("p", null, "…"),
+			createElement("p", null,
+					createElement("i", null,
+							"lorem",
+							createElement("em", null, "…"),
+							"ipsum")
+			),
+			createElement("p", null, "…"));
+}
+
 export function NonBlockingContainer() {
 	return createElement(FragmentLayout, null,
 			createElement("p", null, "…"),

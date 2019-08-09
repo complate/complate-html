@@ -39,7 +39,7 @@ export function generateAttributes(params) {
 
 // adapted from TiddlyWiki <http://tiddlywiki.com> and Python 3's `html` module
 export function htmlEncode(str, attribute) {
-	let res = str.replace(/&/g, "&amp;").
+	let res = str.toString().replace(/&/g, "&amp;").
 		replace(/</g, "&lt;").
 		replace(/>/g, "&gt;");
 	return attribute ? res.replace(/"/g, "&quot;").replace(/'/g, "&#x27;") : res;

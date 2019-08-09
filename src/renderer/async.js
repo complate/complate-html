@@ -1,17 +1,22 @@
 import { childContents, startTag, endTag } from "./html";
 import { Element, DeferredElement } from "../elements";
+import BaseRenderer from "./";
 import DelayedStream from "../stream/delayed";
 
-export let render = (element, stream) => {
-	if(element instanceof Element) {
-		return renderElement(element, stream);
-	} else if(element instanceof DeferredElement) {
-		return renderDeferredElement(element, stream);
-	} else {
-		stream.write(childContents(element));
-		return stream;
+export default class Renderer extends BaseRenderer {
+	render(element, stream) {
+		if(element instanceof Element) {
+			return renderElement(element, stream);
+		} else if(element instanceof DeferredElement) {
+			return renderDeferredElement(element, stream);
+		} else {
+			stream.write(childContents(element));
+			return Promise.resolve(stream);
+		}
 	}
-};
+}
+
+export let render = Renderer.prototype.render;
 
 let renderElement = (element, stream) => {
 	stream.write(startTag(element));
