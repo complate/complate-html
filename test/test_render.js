@@ -1,17 +1,26 @@
 /* global describe, it */
-import { createElement, HTMLString, Fragment, DeferredElement } from "../src";
-import BufferedStream from "../src/buffered_stream";
+import { createElement, HTMLString, Fragment, DeferredElement, renderSync, renderAsync } from "../src";
+import BufferedStream from "../src/stream/buffered";
 import assert, { strictEqual as assertSame } from "assert";
 import { SiteIndex, NonBlockingContainer } from "./macros";
+
+function renderAndAssert(element, string) {
+	// Sync first
+	let stream = new BufferedStream();
+	renderSync(element, stream);
+	assertSame(stream.read(), string);
+
+	// Async
+	stream = new BufferedStream();
+	return renderAsync(element, stream).then(stream => assertSame(stream.read(), string));
+}
 
 describe("basic rendering", () => {
 	it("should correspond to the function signature prescribed by JSX", () => {
 		let root = createElement("body", null,
 				createElement("p", { class: "foo" }, "lorem ipsum", "dolor sit amet"));
-		let stream = new BufferedStream();
-		root.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, '<body><p class="foo">lorem ipsumdolor sit amet</p></body>');
+
+		return renderAndAssert(root, '<body><p class="foo">lorem ipsumdolor sit amet</p></body>');
 	});
 
 	it("should support nested elements", () => {
@@ -19,39 +28,19 @@ describe("basic rendering", () => {
 				createElement("bar", null,
 						createElement("baz", null, "loremipsum")));
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<foo><bar><baz>loremipsum</baz></bar></foo>");
+		return renderAndAssert(el, "<foo><bar><baz>loremipsum</baz></bar></foo>");
 	});
 
 	it("should support unknown elements", () => {
 		let el = createElement("custom-element");
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<custom-element></custom-element>");
-	});
-
-	it.skip("should support virtual fragment elements", () => {
-		let el = createElement(Fragment, null,
-				createElement("span", null, "lorem"),
-				createElement("span", null, "ipsum"));
-
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<span>lorem</span><span>ipsum</span>");
+		return renderAndAssert(el, "<custom-element></custom-element>");
 	});
 
 	it("should omit closing tag for void elements", () => {
 		let el = createElement("input");
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<input>");
+		return renderAndAssert(el, "<input>");
 	});
 
 	it("should support both elements and strings/numbers as child elements", () => {
@@ -61,28 +50,19 @@ describe("basic rendering", () => {
 				createElement("mark", null, "world"),
 				123);
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<p><em>hello</em>lorem ipsum<mark>world</mark>123</p>");
+		return renderAndAssert(el, "<p><em>hello</em>lorem ipsum<mark>world</mark>123</p>");
 	});
 
 	it("should ignore blank values for child elements", () => {
 		let el = createElement("p", null, null, "hello", undefined, "world", false);
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<p>helloworld</p>");
+		return renderAndAssert(el, "<p>helloworld</p>");
 	});
 
 	it("should support nested arrays for child elements", () => {
 		let el = createElement("p", null, "foo", ["hello", ["…", "…"], "world"], "bar");
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<p>foohello……worldbar</p>");
+		return renderAndAssert(el, "<p>foohello……worldbar</p>");
 	});
 
 	it("should support generated child elements", () => {
@@ -93,11 +73,36 @@ describe("basic rendering", () => {
 				}),
 				"dolor sit amet");
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html,
+		return renderAndAssert(el,
 				"<div>lorem ipsum<i>foo</i><i>bar</i><i>baz</i>dolor sit amet</div>");
+	});
+});
+
+describe("fragments", () => {
+	it("should support virtual fragment elements", () => {
+		let el = createElement(Fragment, null,
+				createElement("span", null, "lorem"),
+				createElement("span", null, "ipsum"));
+
+		return renderAndAssert(el, "<span>lorem</span><span>ipsum</span>");
+	});
+
+	it("should support multiple root elements (via virtual fragment elements)", () => {
+		let root = createElement(Fragment, null,
+				createElement("li", null, "foo"),
+				createElement("li", null, "bar"),
+				createElement("li", null, "baz"));
+		return renderAndAssert(root, "<li>foo</li><li>bar</li><li>baz</li>");
+	});
+});
+
+describe("macros", () => {
+	it("should perform markup expansion", () => {
+		let macro = SiteIndex({ title: "hello world" });
+		return renderAndAssert(macro, "<html>" +
+									'<head><meta charset="utf-8"><title>hello world</title></head>' +
+									"<body><h1>hello world</h1><p>…</p></body>" +
+								"</html>");
 	});
 });
 
@@ -112,10 +117,7 @@ describe("HTML attributes", _ => {
 			disabled: false
 		});
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, '<input type="text" id="123" autofocus>');
+		return renderAndAssert(el, '<input type="text" id="123" autofocus>');
 	});
 });
 
@@ -124,10 +126,7 @@ describe("HTML encoding", _ => {
 		let el = createElement("div", { title: 'foo& <i>"bar"</i> \'baz' },
 				createElement("p", null, 'lorem& <em>"ipsum"</em> \'…'));
 
-		let stream = new BufferedStream();
-		el.renderSync(stream);
-		let html = stream.read();
-		assertSame(html, "<div " +
+		return renderAndAssert(el, "<div " +
 				'title="foo&amp; &lt;i&gt;&quot;bar&quot;&lt;/i&gt; &#x27;baz">' +
 				'<p>lorem&amp; &lt;em&gt;"ipsum"&lt;/em&gt; \'…</p></div>');
 	});
@@ -142,7 +141,7 @@ describe("HTML encoding", _ => {
 		let el = createElement("p", null, new HTMLString("foo <i>bar</i> baz"));
 
 		let stream = new BufferedStream();
-		el.renderSync(stream);
+		renderSync(el, stream);
 		let html = stream.read();
 		assert(html.includes("<p>foo <i>bar</i> baz</p>"));
 	});
@@ -151,22 +150,13 @@ describe("HTML encoding", _ => {
 describe("synchronous rendering", () => {
 	it("should detect non-blocking child elements", done => {
 		let stream = new BufferedStream();
-		let fn = _ => NonBlockingContainer().renderSync(stream);
+		let fn = _ => renderSync(NonBlockingContainer(), stream);
 		assert.throws(fn, /deferred elements unsupported in synchronous rendering/);
 		done();
 	});
 });
 
 describe("asynchronous rendering", () => {
-	it("should generate HTML", () => {
-		let root = createElement("body", null,
-				createElement("p", { class: "info" }, "lorem", "ipsum"));
-		return root.renderAsync(new BufferedStream()).then(stream => {
-			let html = stream.read();
-			assertSame(html, '<body><p class="info">loremipsum</p></body>');
-		});
-	});
-
 	it("should support deferred child elements", () => {
 		let root = createElement("body", null, new DeferredElement(callback => {
 			setTimeout(() => {
@@ -174,7 +164,7 @@ describe("asynchronous rendering", () => {
 				callback(el);
 			}, 10);
 		}));
-		return root.renderAsync(new BufferedStream()).then(stream => {
+		return renderAsync(root, new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, '<body><p class="info">loremipsum</p></body>');
 		});
@@ -195,7 +185,7 @@ describe("asynchronous rendering", () => {
 						})),
 				createElement("a4")
 		);
-		return root.renderAsync(new BufferedStream()).then(stream => {
+		return renderAsync(root, new BufferedStream()).then(stream => {
 			let html = stream.read();
 			assertSame(html, "<body><a1></a1><a2><a3></a3></a2><a4></a4></body>");
 		});
@@ -213,34 +203,11 @@ describe("asynchronous rendering", () => {
 		});
 		let root = createElement("ul", null, ...deferred);
 
-		return root.renderAsync(new BufferedStream()).then(stream => {
+		return renderAsync(root, new BufferedStream()).then(stream => {
 			let html = stream.read();
 			let expectedLis = range(10000).map((_, i) => `<li>${i}</li>`).join("");
 			assert(html, `<ul>${expectedLis}</ul>`);
 		});
-	});
-
-	it.skip("should support multiple root elements (via virtual fragment elements)", () => {
-		let root = createElement(Fragment, null,
-				createElement("li", null, "foo"),
-				createElement("li", null, "bar"),
-				createElement("li", null, "baz"));
-		return root.renderAsync(new BufferedStream()).then(stream => {
-			let html = stream.read();
-			assertSame(html, "<li>foo</li><li>bar</li><li>baz</li>");
-		});
-	});
-
-	it("should perform markup expansion for macros", () => {
-		return SiteIndex({ title: "hello world" }).
-			renderAsync(new BufferedStream()).
-			then(stream => {
-				let html = stream.read();
-				assertSame(html, "<html>" +
-									'<head><meta charset="utf-8"><title>hello world</title></head>' +
-									"<body><h1>hello world</h1><p>…</p></body>" +
-								"</html>");
-			});
 	});
 });
 

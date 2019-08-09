@@ -1,4 +1,4 @@
-import BufferedStream from "./buffered_stream";
+import BufferedStream from "./buffered";
 
 // pseudo-stream, buffering contents to be consumed afterwards as a single string
 export default class DelayedStream extends BufferedStream {

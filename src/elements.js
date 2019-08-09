@@ -1,4 +1,3 @@
-import { generateAttributes, isVoidElement } from "./html";
 import { isBlank } from "./util";
 
 function sanitizeChildren(children, DeferredElement) {
@@ -13,15 +12,6 @@ function sanitizeChildren(children, DeferredElement) {
 	}, []);
 }
 
-export function makeCreateElement(Element, DeferredElement) {
-	return (tag, attributes, ...children) => {
-		if(tag.call) { // macro
-			return tag(attributes, ...children);
-		}
-		return new Element(tag, attributes, sanitizeChildren(children, DeferredElement));
-	};
-}
-
 export class DeferredElement {
 	constructor(fn) {
 		this.promise = new Promise(resolve => {
@@ -32,26 +22,26 @@ export class DeferredElement {
 
 export class Element {
 	constructor(tag, attributes, children) {
-		let isVoid = this.void = isVoidElement(tag);
-		if(isVoid && children && children.length) {
-			throw new Error(`void elements must not have children: \`<${tag}>\``);
-		}
-
 		this.tag = tag;
 		this.attribs = attributes || {};
 		this.children = children || [];
 	}
+}
 
-	get startTag() {
-		// TODO: performance optimization by avoiding `generateAttributes`
-		//       invocation if unnecessary
-		return `<${this.tag}${generateAttributes(this.attribs)}>`;
-	}
-
-	get endTag() {
-		return this.void ? "" : `</${this.tag}>`;
+export class FragmentElement extends Element {
+	constructor(children) {
+		super(null, null, children);
 	}
 }
 
-// XXX: only fdor testing purposes
-export let createElement = makeCreateElement(Element, DeferredElement);
+export let Fragment = {};
+
+export let createElement = (tag, attributes, ...children) => {
+	if(tag.call) { // macro
+		return tag(attributes, ...children);
+	} else if(tag === Fragment) {
+		return new FragmentElement(sanitizeChildren(children, DeferredElement));
+	} else {
+		return new Element(tag, attributes, sanitizeChildren(children, DeferredElement));
+	}
+};

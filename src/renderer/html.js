@@ -1,3 +1,5 @@
+import { isBlank, repr } from "../util";
+
 export let VOID_ELEMENTS = {}; // poor man's `Set`
 [
 	"area", "base", "br", "col", "embed", "hr", "img", "input", "keygen",
@@ -41,4 +43,26 @@ export function htmlEncode(str, attribute) {
 		replace(/</g, "&lt;").
 		replace(/>/g, "&gt;");
 	return attribute ? res.replace(/"/g, "&quot;").replace(/'/g, "&#x27;") : res;
+}
+
+export function HTMLString(str) {
+	if(isBlank(str) || !str.substr) {
+		throw new Error(`invalid ${repr(this.constructor.name, false)}: ${repr(str)}`);
+	}
+	this.value = str;
+}
+
+export function childContents(child) {
+	return child instanceof HTMLString ? // eslint-disable-next-line indent
+					child.value : htmlEncode(child.toString());
+}
+
+export function startTag(element) {
+	// TODO: performance optimization by avoiding `generateAttributes`
+	//       invocation if unnecessary
+	return element.tag ? `<${element.tag}${generateAttributes(element.attribs)}>` : "";
+}
+
+export function endTag(element) {
+	return (element.tag && !isVoidElement(element.tag)) ? `</${element.tag}>` : "";
 }
