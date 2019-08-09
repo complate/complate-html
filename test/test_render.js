@@ -132,7 +132,7 @@ describe("HTML encoding", _ => {
 				'<p>lorem&amp; &lt;em&gt;"ipsum"&lt;/em&gt; \'…</p></div>');
 	});
 
-	it("should allow for raw HTML, cicrumventing content encoding", () => {
+	it("should allow for raw HTML, circumventing content encoding", () => {
 		assert.throws(_ => new HTMLString(), /invalid/);
 		assert.throws(_ => new HTMLString(null), /invalid/);
 		assert.throws(_ => new HTMLString(false), /invalid/);
@@ -152,7 +152,7 @@ describe("synchronous rendering", () => {
 	it("should detect non-blocking child elements", done => {
 		let stream = new BufferedStream();
 		let fn = _ => NonBlockingContainer().renderSync(stream);
-		assert.throws(fn, /deferred elements unsupported in synchrous rendering/);
+		assert.throws(fn, /deferred elements unsupported in synchronous rendering/);
 		done();
 	});
 });
@@ -201,7 +201,7 @@ describe("asynchronous rendering", () => {
 		});
 	});
 
-	it("should support large numbers of deferred child elements in paralell", () => {
+	it("should support large numbers of deferred child elements in parallel", () => {
 		let deferred = range(10000).map((_, i) => {
 			i++;
 			return new DeferredElement(callback => {

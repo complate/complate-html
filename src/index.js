@@ -12,7 +12,7 @@ export function HTMLString(str) {
 
 export class DeferredElement extends elements.DeferredElement {
 	renderSync(stream) {
-		throw new Error("deferred elements unsupported in synchrous rendering");
+		throw new Error("deferred elements unsupported in synchronous rendering");
 	}
 
 	renderAsync(stream) {
