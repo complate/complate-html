@@ -9,6 +9,8 @@ export default class Renderer extends BaseRenderer {
 			return renderElement(element, stream);
 		} else if(element instanceof DeferredElement) {
 			return renderDeferredElement(element, stream);
+		} else if(element.then) {
+			return element.then(res => render(res, stream));
 		} else {
 			stream.write(childContents(element));
 			return Promise.resolve(stream);

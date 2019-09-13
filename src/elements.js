@@ -1,14 +1,11 @@
 import { isBlank } from "./util";
 
-function sanitizeChildren(children, DeferredElement) {
+function sanitizeChildren(children) {
 	return children.reduce((memo, item) => {
 		if(isBlank(item)) {
 			return memo;
 		}
-		if(item.then) {
-			item = new DeferredElement(item);
-		}
-		return memo.concat(item.pop ? sanitizeChildren(item, DeferredElement) : item);
+		return memo.concat(item.pop ? sanitizeChildren(item) : item);
 	}, []);
 }
 
@@ -40,8 +37,8 @@ export let createElement = (tag, attributes, ...children) => {
 	if(tag.call) { // macro
 		return tag(attributes, ...children);
 	} else if(tag === Fragment) {
-		return new FragmentElement(sanitizeChildren(children, DeferredElement));
+		return new FragmentElement(sanitizeChildren(children));
 	} else {
-		return new Element(tag, attributes, sanitizeChildren(children, DeferredElement));
+		return new Element(tag, attributes, sanitizeChildren(children));
 	}
 };
