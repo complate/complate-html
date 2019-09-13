@@ -1,5 +1,5 @@
 /* global describe, it */
-import { createElement, DeferredElement, renderSync, renderAsync } from "../src";
+import { createElement, renderSync, renderAsync } from "../src";
 import BufferedStream from "../src/stream/buffered";
 import assert, { strictEqual as assertSame } from "assert";
 import { NonBlockingContainer } from "./macros";
@@ -15,10 +15,10 @@ describe("synchronous rendering", () => {
 
 describe("asynchronous rendering", () => {
 	it("should support deferred child elements", () => {
-		let root = createElement("body", null, new DeferredElement(callback => {
+		let root = createElement("body", null, new Promise(resolve => {
 			setTimeout(() => {
 				let el = createElement("p", { class: "info" }, "lorem", "ipsum");
-				callback(el);
+				resolve(el);
 			}, 10);
 		}));
 		return renderAsync(root, new BufferedStream()).then(stream => {
@@ -29,15 +29,15 @@ describe("asynchronous rendering", () => {
 
 	it("should keep order if deferred child elements", () => {
 		let root = createElement("body", null,
-				new DeferredElement(callback => {
+				new Promise(resolve => {
 					setTimeout(() => {
-						callback(createElement("a1"));
+						resolve(createElement("a1"));
 					}, 10);
 				}),
 				createElement("a2", null,
-						new DeferredElement(callback => {
+						new Promise(resolve => {
 							setTimeout(() => {
-								callback(createElement("a3"));
+								resolve(createElement("a3"));
 							}, 10);
 						})),
 				createElement("a4")
@@ -51,10 +51,10 @@ describe("asynchronous rendering", () => {
 	it("should support large numbers of deferred child elements in parallel", () => {
 		let deferred = range(10000).map((_, i) => {
 			i++;
-			return new DeferredElement(callback => {
+			return new Promise(resolve => {
 				setTimeout(() => {
 					let el = createElement("li", null, i);
-					callback(el);
+					resolve(el);
 				}, 100); // 100ms would lead to timeout if not executed parallely
 			});
 		});

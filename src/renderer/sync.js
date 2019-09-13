@@ -1,12 +1,12 @@
 import { childContents, startTag, endTag } from "./html";
-import { Element, DeferredElement } from "../elements";
+import { Element } from "../elements";
 import BaseRenderer from "./";
 
 export default class Renderer extends BaseRenderer {
 	render(element, stream) {
 		if(element instanceof Element) {
 			return renderElement(element, stream);
-		} else if(element instanceof DeferredElement) {
+		} else if(element.then) {
 			throw new Error("deferred elements unsupported in synchronous rendering");
 		} else {
 			stream.write(childContents(element));

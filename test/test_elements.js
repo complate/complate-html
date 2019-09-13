@@ -1,6 +1,6 @@
 /* global describe, it */
-import { createElement, DeferredElement } from "../src/elements";
-import { strictEqual as assertSame, deepStrictEqual as assertDeep } from "assert";
+import { createElement } from "../src/elements";
+import assert, { strictEqual as assertSame, deepStrictEqual as assertDeep } from "assert";
 
 describe("createElement", () => {
 	it("should generate an AST-like object hierarchy", () => {
@@ -37,15 +37,15 @@ describe("createElement", () => {
 	});
 
 	it("should support deferred elements", done => {
-		let root = createElement("body", { class: "plain" }, new DeferredElement(callback => {
+		let root = createElement("body", { class: "plain" }, new Promise(resolve => {
 			setTimeout(() => {
 				let el = createElement("p", null, "lorem", "ipsum");
-				callback(el);
+				resolve(el);
 			}, 10);
 		}));
 
-		// FIXME: tests only that `DeferredElement` creates a pseudo-promise
-		root.children[0].promise.
+		assert(root.children[0].then, "Child should be a Promise");
+		root.children[0].
 			then(element => {
 				assertSame(element.tag, "p");
 				assertDeep(Object.keys(element.attribs), []);

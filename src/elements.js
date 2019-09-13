@@ -9,14 +9,6 @@ function sanitizeChildren(children) {
 	}, []);
 }
 
-export class DeferredElement {
-	constructor(fn) {
-		this.promise = new Promise(resolve => {
-			return fn(resolve);
-		});
-	}
-}
-
 export class Element {
 	constructor(tag, attributes, children) {
 		this.tag = tag;
