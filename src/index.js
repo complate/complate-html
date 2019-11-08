@@ -1,10 +1,18 @@
 import * as elements from "./elements";
-import { iterAsync } from "./util";
+import { iterAsync, isBlank, repr } from "./util";
+import { htmlEncode } from "./html";
 
 export { defer } from "./elements";
 
+export function HTMLString(str) {
+	if(isBlank(str) || !str.substr) {
+		throw new Error(`invalid ${repr(this.constructor.name, false)}: ${repr(str)}`);
+	}
+	this.value = str;
+}
+
 export class DeferredElement extends elements.DeferredElement {
-	renderSync() {
+	renderSync(stream) {
 		throw new Error("deferred elements unsupported in synchrous rendering");
 	}
 
@@ -23,7 +31,7 @@ export class Element extends elements.Element {
 			if(child.renderAsync) {
 				child.renderAsync(stream, next);
 			} else {
-				stream.write(child);
+				stream.write(childContents(child));
 				next();
 			}
 		}, () => {
@@ -32,18 +40,22 @@ export class Element extends elements.Element {
 		});
 	}
 
-	// FIXME: use stream interface for flushing purposes
-	renderSync() {
-		let html = this.startTag;
+	renderSync(stream) {
+		stream.write(this.startTag);
 		this.children.forEach(child => {
 			if(child.renderSync) {
-				html += child.renderSync();
+				stream.write(child.renderSync(stream));
 			} else {
-				html += child;
+				stream.write(childContents(child));
 			}
 		});
-		return `${html}${this.endTag}`;
+		stream.write(this.endTag);
 	}
+}
+
+function childContents(child) {
+	return child instanceof HTMLString ? // eslint-disable-next-line indent
+					child.value : htmlEncode(child.toString());
 }
 
 export let createElement = elements.makeCreateElement(Element, DeferredElement);

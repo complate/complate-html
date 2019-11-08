@@ -1,3 +1,14 @@
+export let VOID_ELEMENTS = {}; // poor man's `Set`
+[
+	"area", "base", "br", "col", "embed", "hr", "img", "input", "keygen",
+	"link", "meta", "param", "source", "track", "wbr"
+].forEach(tag => {
+	VOID_ELEMENTS[tag] = true;
+});
+export function isVoidElement(tag) {
+	return VOID_ELEMENTS[tag];
+}
+
 export function generateAttributes(params) {
 	let attribs = Object.keys(params).reduce((memo, name) => {
 		let value = params[name];
@@ -25,7 +36,7 @@ export function generateAttributes(params) {
 }
 
 // adapted from TiddlyWiki <http://tiddlywiki.com> and Python 3's `html` module
-function htmlEncode(str, attribute) {
+export function htmlEncode(str, attribute) {
 	let res = str.replace(/&/g, "&amp;").
 		replace(/</g, "&lt;").
 		replace(/>/g, "&gt;");
